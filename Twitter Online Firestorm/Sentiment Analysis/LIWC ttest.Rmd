@@ -1,0 +1,170 @@
+---
+title: "LIWC_ttest"
+author: "Tianyi Tan"
+date: "4/30/2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)      # data manipulation & plotting
+library(stringr)        # text cleaning and regular expressions
+library(tidytext)       # provides additional text mining functions
+library(lubridate)
+library(psych)
+library(dplyr)
+library(textclean)
+```
+
+```{r}
+liwc <- read_csv("LIWC.csv")
+before <- subset(liwc,liwc$C == 0)
+after <- subset(liwc,liwc$C == 1)
+describe(liwc)
+```
+
+ 
+```{r}
+#p_var = c(2, 3, 5) 
+#mean_est = c("aa", "bb", "cc") 
+#p_test = c(TRUE, FALSE, TRUE) 
+p_var=c()
+mean_est = c()
+p_test=c()
+p_var = c(p_var,6)
+mean_est = c(mean_est,'dd')
+p_test = c(p_test,FALSE)
+df = data.frame(p_var,mean_est,p_test) 
+```
+
+
+
+```{r}
+library(magicfor) 
+magic_for(print, silent = TRUE)
+
+x<-c(4:96)
+
+emotion <- c()
+var_test <- c()
+var_result<-c()
+mean_diff <- c()
+t_test_p <- c()
+t_result <-c()
+
+
+for (val in x) {
+  emo<-colnames(before[val])
+  e_bf<-as.numeric(unlist(before[val]))
+  e_af<-as.numeric(unlist(after[val]))
+  cat("\nThe Emotion:",emo,"\n")
+  emotion<- c(emotion,colnames(before[val]))
+  #s.before<-shapiro.test(e_bf)
+  #p_normal<-s.before$p
+  #s.after<-shapiro.test(e_af)
+  #s.after
+  #if (s.before$p.value < 0.05){
+    #cat("The distribution for",emotion,"before the res is not normal\n")}
+  v<-var.test(e_bf,e_af)
+  p_var<-v$p.value
+  var_test<-c(var_test,p_var)
+  if (v$p.value>0.05) {
+    cat ("The variance for before/after response of",emotion,"is equal\n")
+    res<-t.test(e_bf,e_af,var.equal=TRUE)
+    var_result<-c(var_result,TRUE)
+  }else{
+    cat ("The variance for before/after response of",emotion,"is not equal\n")
+    res<-t.test(e_bf,e_af,var.equal=FALSE)
+    var_result<-c(var_result,FALSE)
+  }
+  mean_est<-res$estimate
+  mean_diff <- c(mean_diff,mean_est)
+  p_test<-res$p.value
+  t_test_p < c(t_test_p,p_test)
+  if (res$p.value <0.05){
+    cat("The average",emotion,"before response is significantly different from after response\n")
+    t_result <-c(t_result,"Yes")
+  }else{
+    cat("The average",emotion,"before response is NOT significantly different from after response\n")
+    t_result <-c(t_result,"No")
+  }
+  
+  #put(emotion,s.before$p.value,v$p.value,res$estimate,res$p.value)
+  #put(emotion,p_normal,p_var,mean_est,p_test)
+  put(emotion,p_var,mean_est,p_test)
+  
+}
+
+```
+
+
+```{r}
+df = data.frame(emotion,var_test,var_result,mean_diff,t_test_p,t_result) 
+
+```
+
+
+```{r}
+library(magicfor) 
+magic_for(print, silent = TRUE)
+
+x<-c(4:5)
+
+for (val in x) {
+  emotion<-colnames(before[val])
+  e_bf<-as.numeric(unlist(before[val]))
+  e_af<-as.numeric(unlist(after[val]))
+  cat("\nThe Emotion:",emotion,"\n")
+  s.before<-shapiro.test(e_bf)
+  p_normal<-s.before$p
+  #s.after<-shapiro.test(e_af)
+  #s.after
+  if (s.before$p.value < 0.05){
+    cat("The distribution for",emotion,"before the res is not normal\n")}
+  v<-var.test(e_bf,e_af)
+  p_var<-v$p.value
+  if (v$p.value>0.05) {
+    cat ("The variance for before/after response of",emotion,"is equal\n")
+    res<-t.test(e_bf,e_af,var.equal=TRUE)
+  }else{
+    cat ("The variance for before/after response of",emotion,"is not equal\n")
+    res<-t.test(e_bf,e_af,var.equal=FALSE)
+  }
+  mean_est<-res$estimate
+  p_test<-res$p.value
+  if (res$p.value <0.05){
+    cat("The average",emotion,"before response is significantly different from after response\n")
+  }else{
+    cat("The average",emotion,"before response is NOT significantly different from after response\n")
+  }
+  
+  #put(emotion,s.before$p.value,v$p.value,res$estimate,res$p.value)
+  put(emotion,p_normal,p_var,mean_est,p_test)
+}
+
+```
+
+
+
+
+
+
+
+```{r}
+colnames(liwc)
+liwc['WC']
+l<-c()
+for (features in colnames(liwc)) {
+  l<-c(l,features)
+}
+
+```
+
+```{r}
+lapply(liwc[,c("time", "age", "frail")], function(x) t.test(x ~ kidney$sex, var.equal = TRUE))
+
+```
+

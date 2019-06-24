@@ -1,0 +1,337 @@
+---
+title: "TidyText"
+author: "Jocelyn Tan"
+date: "3/4/2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## import library
+
+```{r}
+library(tidyverse)      # data manipulation & plotting
+library(stringr)        # text cleaning and regular expressions
+library(tidytext)       # provides additional text mining functions
+library(lubridate)
+library(psych)
+library(dplyr)
+library(textclean)
+```
+
+
+```{r read file}
+jpm <- read_csv("AskJPM.csv")
+typeof(jpm$date)
+jpm$date<-as.character(jpm$date)
+jpm <- jpm %>% mutate(Date=as.POSIXct(date, format = "%m/%e/%Y %R")) 
+jpm$response<- ifelse(jpm$Date <= as.POSIXct("2013-11-13 16:29:00"),0,1)
+jpm_text<-as.data.frame(jpm$text)
+
+```
+
+```{r Data Clean-up}
+
+# clean the text by removuing the hashtag
+jpm_text$text_clean <- gsub("#", "", jpm_text$`jpm$text`)
+
+jpm_text$date=jpm$Date
+jpm_text$year=jpm$Year
+jpm_text$month=jpm$Month
+jpm_text$day=jpm$Day
+jpm_text$hour=jpm$Hour
+jpm_text$minutes=jpm$Minutes
+jpm_text$response<- ifelse(jpm_text$date <= as.POSIXct("2013-11-13 16:29:00"),0,1)
+#jpm_text<-jpm_text[,c(3,1,2,4)]
+
+
+#removing the @ all together
+jpm_text$text_clean <- gsub("@ ", "@", jpm_text$text_clean)
+jpm_text$text_clean <- gsub('@\\S+', '', jpm_text$text_clean) # Remove Handles
+
+# remove the url
+jpm_text$text_clean <- gsub('http\\S+\\s*', '', jpm_text$text_clean) # Remove URLs
+jpm_text$text_clean<-gsub("pic.twitter..*","",jpm_text$text_clean)
+
+# remove non-ascii
+
+#s<-jpm_text[4,2]
+#s
+#Encoding(s)<-"latin1"
+#s<-iconv(s,"latin1","ASCII",sub="")
+#s
+
+library(dplyr)
+jpm_text <- jpm_text %>% mutate(text_clean = iconv(text_clean, from = "latin1", to = "ASCII")) %>% filter(!is.na(text_clean))
+
+
+
+# remove whitespaces
+
+jpm_text$text_clean <- gsub("^[[:space:]]*","", jpm_text$text_clean) ## Remove leading whitespaces
+jpm_text$text_clean <- gsub("[[:space:]]*$","", jpm_text$text_clean) ## Remove trailing whitespaces
+
+
+write_csv(jpm_text,"AskJPM_cleaned.csv")
+
+###########################################
+jpm_text$text_clean <- gsub("# ", "#", jpm_text$`jpm$text`)
+jpm_text$text_clean <- gsub("@ ", "@", jpm_text$text_clean)
+jpm_text$text_clean <- gsub('http\\S+\\s*', '', jpm_text$text_clean) # Remove URLs
+jpm_text$text_clean <- gsub('#\\S+', '', jpm_text$text_clean) # Remove Hashtags
+jpm_text$text_clean <- gsub('@\\S+', '', jpm_text$text_clean) # Remove Handles
+jpm_text$text_clean <- gsub('\\b+RT', '', jpm_text$text_clean) # Remove RT
+jpm_text$text_clean <- gsub('[[:cntrl:]]', '', jpm_text$text_clean)
+jpm_text$text_clean <- gsub('\\d', '', jpm_text$text_clean) # Remove Numbers
+
+jpm_text$text_clean <- gsub('\\w+(?:\\.\\w+)*/\\S+', '', jpm_text$text_clean) # Remove url withouts https
+
+jpm_text$text_clean <- gsub("[^[:print:]]","", jpm_text$text_clean) # Remove all printable characters
+jpm_text$text_clean <- gsub("'\\S+","", jpm_text$text_clean) # Remove apostrophe
+jpm_text$text_clean <- gsub('[[:punct:]]',"", jpm_text$text_clean)
+jpm_text$text_clean <- gsub("^[[:space:]]*","", jpm_text$text_clean) ## Remove leading whitespaces
+jpm_text$text_clean <- gsub("[[:space:]]*$","", jpm_text$text_clean) ## Remove trailing whitespaces
+
+jpm_text[13085,]
+jpm_text[8,]
+
+jpm_text[29,]
+```
+
+
+
+
+
+
+```{r}
+
+colnames(jpm_text)[2] <- "text"
+max(which(jpm_text$response==1))
+
+
+nrow(jpm_text)
+before_tidy_data<- jpm_text[c(10533:11024),] %>%
+  group_by(date) %>%
+  unnest_tokens(word,text_clean)%>%
+  ungroup()
+
+after_tidy_data<-jpm_text[c(1:10532),] %>%
+  group_by(date) %>%
+  unnest_tokens(word,text_clean)%>%
+  ungroup()
+
+sentiment_before <- before_tidy_data %>% 
+  inner_join(get_sentiments("nrc")) %>% 
+  count(date,text,sentiment)%>%
+  spread(sentiment, n, fill = 0)
+
+sentiment_after<-after_tidy_data %>% 
+  inner_join(get_sentiments("nrc")) %>% 
+  count(date,text,sentiment)%>%
+  spread(sentiment, n, fill = 0)
+
+```
+
+
+```{r t test}
+
+
+s<-shapiro.test(sentiment_before$anger)
+sentiment_before$anger
+s$p.value
+# data is not normal
+# Mann-Whitney U test
+# provided the sample size is not too small, we should not be overly concerned if the data appear to violate the normal assumption
+v<-var.test(sentiment_before$anger,sentiment_after$anger)
+# equality of two variances
+v$p.value
+res_anger<-t.test(sentiment_before$anger,sentiment_after$anger,var.equal=TRUE)
+res_anger
+res_anger$p.value
+# no difference
+e_bf<-sentiment_before[,3]
+e_bf
+emotion.1<-colnames(sentiment_before[3])
+typeof(sentiment_before[3])
+sentiment_before$anger
+as.numeric(unlist(sentiment_before[3]))
+```
+
+
+```{r}
+sentiment_before$total_negative <- rowSums(sentiment_before[,c(3,5,6,8,10)])
+sentiment_before$total_positive <- rowSums(sentiment_before[,c(4,7,9,11,12)])
+sentiment_after$total_negative <- rowSums(sentiment_after[,c(3,5,6,8,10)])
+sentiment_after$total_positive <- rowSums(sentiment_after[,c(4,7,9,11,12)])
+```
+
+
+```{r for loop}
+library(magicfor) 
+magic_for(print, silent = TRUE)
+
+x<-c(3:14)
+for (val in x) {
+  emotion<-colnames(sentiment_before[val])
+  e_bf<-as.numeric(unlist(sentiment_before[val]))
+  e_af<-as.numeric(unlist(sentiment_after[val]))
+  cat("\nThe Emotion:",emotion,"\n")
+  s.before<-shapiro.test(e_bf)
+  p_normal<-s.before$p
+  #s.after<-shapiro.test(e_af)
+  #s.after
+  if (s.before$p.value < 0.05){
+    cat("The distribution for",emotion,"is not normal\n")}
+  v<-var.test(e_bf,e_af)
+  p_var<-v$p.value
+  if (v$p.value>0.05) {
+    cat ("The variance for before/after response of",emotion,"is equal\n")
+    res<-t.test(e_bf,e_af,var.equal=TRUE)
+  }else{
+    cat ("The variance for before/after response of",emotion,"is not equal\n")
+    res<-t.test(e_bf,e_af,var.equal=FALSE)
+  }
+  mean_est<-res$estimate
+  p_test<-res$p.value
+  if (res$p.value <0.05){
+    cat("The average",emotion,"before response is significantly different from after response\n")
+  }else{
+    cat("The average",emotion,"before response is NOT significantly different from after response\n")
+  }
+  
+  #put(emotion,s.before$p.value,v$p.value,res$estimate,res$p.value)
+  put(emotion,p_normal,p_var,mean_est,p_test)
+}
+
+
+```
+
+```{r}
+
+write_csv(sentiment_before,"before_term_freq.csv")
+write_csv(sentiment_after,"after_term_freq.csv")
+
+
+```
+
+
+```{r}
+
+
+colnames(jpm_text)[2] <- "text"
+
+#tokenization of words into tidy dataframe
+#group by id,each text is split into words in new colomn 'word'
+
+
+tidy_data<- jpm_text %>%
+  group_by(date) %>%
+  unnest_tokens(word,text_clean)%>%
+  ungroup()
+#write_csv(tidy_data,'/Users/xiaotonghe/Documents/research/tw_data/tidy_data.csv')
+
+
+sentiment_nrc_withstop <- tidy_data %>% 
+  inner_join(get_sentiments("nrc")) %>% 
+  count(date,text,sentiment)%>%
+  spread(sentiment, n, fill = 0)
+
+
+
+#remove stop_words using default stop_words of tidytext package
+data("stop_words")
+
+tidy_data_stop<-tidy_data%>%
+  anti_join(stop_words)
+#write_csv(tidy_data_stop,'/Users/xiaotonghe/Documents/research/tw_data/tidy_data_nostop.csv')
+
+
+#word counts in text.1
+text_words_counts<-tidy_data_stop%>%count(word,sort = TRUE)
+head(text_words_counts,10)
+
+
+#nrc dict
+lexi<- get_sentiments('nrc')%>%filter(sentiment %in% c("positive","negative"))
+
+#get sentiments for each word
+abc_nrc<-tidy_data_stop%>%
+  inner_join(get_sentiments("nrc"),by='word')%>%
+  ungroup()
+
+#sentiments counts
+sentiments_count<-abc_nrc%>%
+  filter(sentiment %in% c("positive","negative"))%>%
+  group_by(sentiment)%>%
+  count(sentiment)
+
+
+sentiment_nrc <- tidy_data_stop %>% 
+  inner_join(get_sentiments("nrc")) %>% 
+  count(date,text,sentiment)%>%
+  spread(sentiment, n, fill = 0)
+
+
+
+write_csv(sentiment_nrc_withstop,"term frequency table.csv")
+
+#match ratio:
+#negative=8166
+#positive=7800
+#total_words=43197
+#(8166+7800)/43197 =0.3696
+
+
+```
+
+
+#observation 13085 (inclusive) after are after response tweets
+```{r}
+#after
+after<-jpm_text[c(1:13084),]
+write_csv(after,"JPMafter.csv")
+#before
+before<-jpm_text[c(13085:13634),]
+write.csv(before,"JPMbefore.csv")
+
+```
+
+
+
+```{r Notes}
+
+
+a<-get_sentiments("afinn")
+```
+```{r dataset with dummy variable}
+jpm_text$rowID<-1:nrow(jpm_text)
+jpm_text$response<-ifelse(jpm_text$rowID<=13084,1,0)
+jpm_text$rowID<-NULL
+write_csv(jpm_text,"AskJPM_Jocelyn.csv")
+
+
+TextPreprocessing <- lapply(jpm_clean, function(x) {
+x = gsub('http\\S+\\s*', '', x) ## Remove URLs
+x = gsub('\\b+RT', '', x) ## Remove RT
+x = gsub('#\\S+', '', x) ## Remove Hashtags
+x = gsub('@\\S+', '', x) ## Remove Mentions
+x = gsub('[[:cntrl:]]', '', x) ## Remove Controls and special characters
+x = gsub("\\d", '', x) ## Remove Controls and special characters
+x = gsub('[[:punct:]]', '', x) ## Remove Punctuations
+x = gsub("^[[:space:]]*","",x) ## Remove leading whitespaces
+x = gsub("[[:space:]]*$","",x) ## Remove trailing whitespaces
+x = gsub(' +',' ',x) ## Remove extra whitespaces
+})
+
+
+#jpm$timestamp <- with(jpm,ymd_h(paste(Year,Month,Day,Hour,sep='-')))
+jpm_clean <- jpm_text %>% 
+  mutate(text_clean=gsub("#[A-Za-z0-9]+|@[A-Za-z0-9]+|\\w+(?:\\.\\w+)*/\\S+","", text)) %>% 
+          dplyr::select(date,text_clean) %>%
+          unnest_tokens(word, text_clean) %>% 
+          anti_join(stop_words) %>%
+          filter(!word =="rt")
+```
+
