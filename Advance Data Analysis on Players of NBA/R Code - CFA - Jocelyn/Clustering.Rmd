@@ -1,0 +1,166 @@
+---
+title: "HW3-2"
+author: "Tianyi Tan"
+date: "03/10/2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Load the Library}
+library(factoextra)
+library(psych)
+library(corrplot)
+library(car)
+library(ggplot2)
+library(cluster)
+```
+
+
+The dataset is pre-processed by using Excel and SPSS. All missing values are manually filled in based on professional NBA players statistics website.
+
+```{r Load the Dataset}
+setwd("~/Desktop/DePaul/DSC424/Project/Dataset")
+nba <- read.csv("main_data_new.csv")
+
+#str(nba)
+
+#check the missing value
+sum(is.na(nba))
+#describe(nba)
+nba_sub<-subset(nba, GP>=30 & MPG>=10)
+describe(nba_sub)
+
+# select the numeric variables
+nba_num <- nba_sub[c(2,4,6:29,31:39)]
+#describe(nba_num)
+```
+
+```{r Drop some of the variables}
+nba_final<- nba_num[c(8,11,15,18,19,21,22,23,25,29,30)] 
+```
+
+For this Cluster Analysis, I chose to perform a factor analysis first and use the factor scores to conduct the Cluster Analysis. (Continued with my factor analysis for the last assignment)
+
+
+##CFA
+
+##Run a common factor analysis on the same data
+
+
+```{r Run a factor analysis with 3 factors}
+
+fit = factanal(nba_final, 2,rotation="promax",scores="regression") #Thomson regression scores
+#adjust the cutoff point to avoid cross loading
+print(fit$loadings, cutoff=.567, sort=T)
+
+nba_cluster<-cbind(fit$scores)
+colnames(nba_cluster) <- c("Attack Factor","Defense Factor")
+
+```
+
+
+
+##cluster analysis
+
+```{r Standarizing the values}
+
+samp.range <- function(x){
+  myrange <- diff(range(x))
+  return(myrange)
+}
+my.ranges <- apply(nba_cluster,2,samp.range)
+
+
+nba.std <- sweep(nba_cluster,2,my.ranges,FUN="/") 
+
+```
+
+
+
+## Determine the number of clusters
+```{r}
+# Determine number of clusters
+wss <- (nrow(nba.std)-1)*sum(apply(nba.std,2,var))
+for (i in 2:15) wss[i] <- sum(kmeans(nba.std, 
+   centers=i)$withinss)
+plot(1:15, wss, type="b", xlab="Number of Clusters",
+  ylab="Within groups sum of squares")
+
+```
+
+The knee point is around 3 from the plot. Thus, I choose 3 clusters for further analysis.
+
+```{r}
+# K-Means Cluster Analysis
+fit <- kmeans(nba.std, 3) 
+
+fviz_cluster(fit,data=nba.std)
+fit$size
+
+fit$withinss
+fit$tot.withinss
+fit$betweenss
+
+# get cluster means 
+aggregate(nba.std,by=list(fit$cluster),FUN=mean)
+```
+We can observe the cluster size for the 3 clusters are: 93, 99 and 254. 
+
+Three clusters give good results in terms of within-cluster sum of squares (1.96, 3.13 and 3.15 for cluster1, 2 and 3) (see Appendix Table 8). For cluster 1,  the cluster mean is high on attack factor scores so it is named Top Attack Players. For cluster 2, it has highest cluster mean on defense factor scores, therefore named Top Defensive Players. For cluster 3, it is called Average Players.
+
+## Standardizing by dividing through by the sample range of each variable
+
+
+
+```{r}
+
+# append cluster assignment
+nba.cluster <- data.frame(nba.std, fit$cluster)
+
+nba.visual <- data.frame(nba_sub$Rk,nba_sub$salary,nba_sub$WINS_RPM,fit$cluster)
+describe(nba.visual)
+aggregate(nba.visual[, 2:3], list(nba.visual$fit.cluster), mean)
+
+
+```
+
+
+After successfully grouping them using factor scores, we can observe obvious difference in the distribution of wins and salaries in different clusters. For Top Attack Players cluster,  it has players with much higher salary on average (14.7 million) and more wins contributed (8.2) compared to Top Defense Players cluster (8.4 million, 4.3 wins) and Average Players cluster (5.3 million, 1.6wins).  
+
+
+```{r K-medoid}
+my.k.choices <- 2:8
+avg.sil.width <- rep(0, times=length(my.k.choices))
+for (ii in (1:length(my.k.choices)) ){
+  avg.sil.width[ii] <- pam(nba.std, k=my.k.choices[ii])$silinfo$avg.width
+}
+print( cbind(my.k.choices, avg.sil.width) )
+
+nba.kmed.3 <- pam(nba.std, k=3, diss=F)
+nba.kmed.3
+
+fviz_cluster(nba.kmed.3,data=nba.std)
+```
+
+
+Using K-medoid gives us similar results.
+
+
+```{r}
+nba.visual$star[nba.visual$nba_sub.Rk <= 100] <- 1
+nba.visual$star[nba.visual$nba_sub.Rk > 100] <- 0
+
+attach(nba.visual)
+mytable <- table(fit.cluster,star) # A will be rows, B will be columns 
+mytable # print table 
+
+# percentage of star or non-star in each cluster
+prop.table(mytable, 1) # row percentages 
+```
+
+From the contingency table, it seems that 98.00% players in cluster 1 is not star (rank top 100). 89.90% of the players in cluster 2 are NBA stars. 
+
+In conclusion,  attack ability of a player contributes more to the winning of the team. High salary is paid for the excellence of a player’s attack ability. For a team, it should adjust its resources to focus on strengthening the attack abilities of the whole team. Finding a balance of scoring, attacking, rebounding and attacking is necessary in more winning in the game. 

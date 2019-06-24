@@ -1,0 +1,280 @@
+---
+title: "HW3-2"
+author: "Tianyi Tan"
+date: "2/19/2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Load the Library}
+library(factoextra)
+library(psych)
+library(corrplot)
+library(car)
+library(dplyr)
+library(reshape2)
+library(ggplot2)
+library(lavaan)
+library(semPlot)
+library(scales)
+library(caret)
+library(ggcorrplot)
+```
+
+
+The dataset is pre-processed by using Excel and SPSS. All missing values are manually filled in based on professional NBA players statistics website.
+
+```{r Load the Dataset}
+setwd("~/Desktop/DePaul/DSC424/Project/Dataset")
+nba <- read.csv("main_data_new.csv")
+
+#str(nba)
+
+#check the missing value
+sum(is.na(nba))
+#describe(nba)
+nba_sub<-subset(nba, GP>=30 & MPG>=10)
+#describe(nba_sub)
+
+# select the numeric variables
+nba_num <- nba_sub[c(2,4,6:29,31:39)]
+#describe(nba_num)
+```
+
+The maximum of Game played is 82. 
+
+Factor analysis is utilized to focus only on the technical court performance and confirm the two factors theory. There were 11 variables participating in the factor analysis: ORPM, FT, AST, X3P, STL, X2P, ORB, DRB, BLK, PF, DRPM, see appendix table 1 for definition. To mitigate the impacts of outliers and noises from the data, CFA only focused on players who played more than 30 games and played for their team for at least 10 minutes (N=345).
+
+For factor analysis, Rank, Salary, Age, Minutes per game played (MP), Wins Contributed by the player (WINS_RPM), Player Impact (PIE), Number of Posessions per Game(PACE), Wins(W) are not part of the technical statistics we are trying to analyze.
+
+Next step we might have to drop the variables that are too correlated with each other.Some of the variables are calculated by two other variables, e.g FG% is calculated by FG/FGA. To avoid the extreme case that some players might only have 1 field goal made with 1 field goal attemped, which gives us 100% FG% and can be misleading. In this case, I keep the field goal made to have fair evaluation. Some of the variables are calculated by sum up two other variables, e.g TRB is calculated by ORB+DRB. In this case, I keep ORB and DRB as two different statistics measuring different skills of the players.
+
+Thus, there are 11 variables for Factor Analysis. 
+
+```{r Drop some of the variables}
+describe(nba_num)
+nba_final<- nba_num[c(8,11,15,18,19,21,22,23,25,29,30)] 
+#describe(nba_final)
+cor=round(cor(nba_final), 2)
+corrplot(cor, method="circle",col=c("yellow", "red","blue","green"))
+```
+
+From the correlation matrix, most of the variables are moderate to highly correlated with each other, which indicates those can be good variables to conduct factor analysis. A correlation test is conducted to see how correlated the variables are and which correlations are significant.
+
+
+##Correlation Test
+
+```{r}
+
+options("scipen"=100, "digits"=5)
+cor.nba<-round(cor(nba_final), 2)
+MCorrTest = corr.test(nba_final, adjust="none")
+
+M = MCorrTest$p
+
+# Now, for each element, see if it is < .01 (or whatever significance) and set the entry to 
+# true = significant or false
+MTest = ifelse(M < .01, T, F)
+
+# Now lets see how many significant correlations there are for each variable.  We can do
+# this by summing the columns of the matrix
+colSums(MTest) - 1  # We have to subtract 1 for the diagonal elements (self-correlation)
+```
+
+From the correlation test, all the variables are correlated with most of the variables. No variables need to be dropped.
+
+
+
+
+```{r Test the Factorability}
+KMO(cor(nba_final))
+bartlett.test(nba_final)
+```
+
+The adequacy of the sample is measured by KMO test. From the test statistics above, the overall KMO statistics are 0.76 which is considered great sample adequacy. 
+
+The strength of the relationship can be measured by a Bartlett Test of Sphericity. The p-value is less than 0.05 indicated that these data do not produce an identity matrix and are thus approximatly multivariate normal and acceotable for further analysis.
+
+##Draw a scree plot
+```{r}
+p = prcomp(nba_final, center=T, scale=T)
+plot(p)
+abline(1, 0)
+summary(p)
+#p <- prcomp(nba_final, scale = TRUE) 
+#see the importance of components
+#summary(p)
+#fviz_eig(p)
+```
+
+We can observe that the knee point will be approximately around 2 dimensions. Therefore,2 components are tested first.
+
+Total variance of 70% is achieved for two factors. From the scree plot, we can also observe that 2 factors are appropriate (see Appendix Table 3). The research of Baghal(2012) also used 2 latent factors: Offensive Quality factor and Defensive Quality factor. Finally, We choose 2 factors and 0.51 cut-off to prevent cross-loading issue. 
+
+##CFA
+
+##Run a common factor analysis on the same data
+
+
+```{r Run a factor analysis with 3 factors}
+
+fit = factanal(nba_final, 2,rotation="promax",scores="regression") #Thomson regression scores
+#adjust the cutoff point to avoid cross loading
+print(fit$loadings, cutoff=.51, sort=T)
+
+
+load <- fit$loadings[,1:2] 
+plot(load,type="n") # set up plot 
+text(load,labels=names(nba_final),cex=.7)
+
+
+```
+
+
+
+
+```{r}
+loadings<-as.data.frame(as.matrix(unlist(load)))
+colnames(loadings)<- c("Attack Factor","Defense Factor")
+loadings$Names=c("X3P","X2P","FT","ORB","DRB","AST","STL","BLK","PF","ORPM","DRPM")
+
+Ord <- c("ORB","DRB","BLK","DRPM","PF","X2P","STL","X3P","AST","FT","ORPM")
+
+loading_ord<-loadings %>%
+  slice(match(Ord,Names))
+
+
+loadings.m <- melt(loading_ord, id="Names", 
+                   measure=c("Attack Factor", "Defense Factor"), variable.name="Factor", value.name="Loading")
+
+
+#For each test, plot the loading as length and fill color of a bar
+# note that the length will be the absolute value of the loading but the 
+# fill color will be the signed value, more on this below
+ggplot(loadings.m, aes(factor(Names, levels=Ord), abs(Loading), fill=Loading)) +   facet_wrap(~ Factor, nrow=1) + #place the factors in separate facets
+  geom_bar(stat="identity") + #make the bars
+  coord_flip() + #flip the axes so the test names can be horizontal  
+  #define the fill color gradient: blue=positive, red=negative
+  scale_fill_gradient2(name = "Loading", 
+                       high = "blue", mid = "white", low = "red", 
+                       midpoint=0, guide=F) +
+  ylab("Loading Strength") + #improve y-axis label
+  theme_bw(base_size=10) #use a black-and-white theme with set font size
+
+
+
+
+```
+
+
+It is clear that the first common factor has larger loading in ORPM, FT, AST, X3P, STL and X2P. It mainly reflects player attack ability from aspects of score, assist, steal, offensive ranking compared to teammates which can be named as attack factors. The second factor has large loading in ORB, DRB, BLK, ORPM and PF. It reflects player defense ability from rebound, block shot, personal foul aspects and defensive ranking compared to teammates, therefore named them as defense factors. It roughly confirms to theoretical model provided in the past research results; each factor significance is relative reasonable. 
+
+```{r Deep Analysis on the factors}
+
+#distribution among positions
+boxplot(STL~POSITION,data=nba_sub, main="Steal vs Position", 
+   xlab="Position of the Players", ylab="Steals")
+
+# correlation between ORB and DRB
+cor_def<-cor(nba_sub[c("ORB", "DRB", "BLK", "PF", "DRPM")])
+cor_def
+ggcorrplot(cor_def, hc.order = TRUE, type = "lower",
+   lab = TRUE)
+# amount of ORB and DRB
+
+# Enhanced Scatterplot of MPG vs. Weight 
+# by Number of Car Cylinders 
+library(car) 
+scatterplot(ORB ~ DRB | POSITION, data=nba_sub, 
+   xlab="Defensive Rebound", ylab="Offensive Rebound")
+```
+
+Before constructing the path model, a deeper analysis on the factors are conducted. Most of the variables under the latent factors has obvious relationships based on the definition of the performance statistics. Steal (STL) might considered as a defensive technique traditionally but actually mainly used by players in the offensive positions (see Appendix table 6 Boxplot). Offensive rebound might not be a traditional defensive measurement of a player. However, practically, a player with high offensive rebound tends to have high defensive rebound (DRB) and a offensive rebound (ORB) is harder to achieve due to the nature of the game. The strong correlation between ORB and DRB (0.75) (see Appendix Table 6 correlation matrix) also confirms the inseparable relationship between ORB and DRB that has the second largest loading for Defense factor. Players in the Center position are more likely to have both high ORB and DRB due to the fact that they are normally the highest player in the team with excellent durability and defensive skills. Thus, in our model, ORB has the highest loading in defense factor with a reasonable practical reason. 
+
+
+```{r Cronbach’s alpha }
+
+PA1 = c("ORB", "DRB", "BLK", "PF", "DRPM")
+PA2 = c("X2P","X3P","FT", "AST","STL","ORPM")
+
+alpha.pa1 = psych::alpha(nba_final[PA1])
+alpha.pa1
+
+alpha.pa2 = psych::alpha(nba_final[PA2])
+alpha.pa2
+
+```
+
+Cronbach’s alpha (α) is used to calculate the internal consistency. Both grouos has their overall alphas larger than 0.7, so we can conclude that both groups of factors are internal consistent.
+
+
+```{r Regression on Factors}
+nba_num<-cbind(nba_num,fit$scores)
+regression2 = lm(WINS_RPM ~ Factor1 + Factor2, data=nba_num)
+
+summary(regression2)
+vif(regression2)
+```
+
+As we can see from the regression result, all the predictors are statisticaly significant. From the vif result, they are all below 5 which indicates no multicollinearity issue. The  R-square is 71.6%  which indicates that 70.6% of the variance in the dependent variable can be explained by the model. 
+```{r Cross Validation}
+
+data_ctrl <- trainControl(method = "cv", number = 5)
+model_cv<- train(WINS_RPM ~ Factor1 + Factor2, data=nba_num,trControl=data_ctrl,method="lm")
+model_cv
+model_cv$finalModel
+model_cv$resample
+```
+
+
+After using 5-fold cross-validation, our model accounts for 70.88% of the variance in Wins for these players.
+
+We assessed the performance of the model by comparing the RMSE (Root Mean Square Error). It is the square root of the variance of the residuals. It indicates the absolute fit of the model to the data, meaning how close the observe data points are to the model's predicted values. 
+
+RMSE has the same unit as the dependent variable (Wins contributed by the player). Thus, the RMSE is too large for practical interpretation of the model. Thus, I dropped this method.
+
+
+
+```{r SEM}
+
+#model <- "\nAttack =~ X2P + X3P + FT + AST + STL + ORPM\nDefense =~ ORB + DRB + BLK + PF + DRPM\n\n\nWINS_RPM ~ Attack + Defense\nsalary.s ~ WINS_RPM\n\n\nsalary.s ~~ Attack\nsalary.s ~~ Defense\n"
+#model <- "\nAttack =~ X2P + X3P + FT + AST + STL + ORPM\nDefense =~ ORB + DRB + BLK + PF + DRPM\n\n\nWINS_RPM ~ Attack + Defense\nsalary.s ~ WINS_RPM\n"
+# final model with the best goodness of fit
+model <- "\nAttack =~ X2P + X3P + FT + AST + STL + ORPM\nDefense =~ ORB + DRB + BLK + PF + DRPM\n\n\nWINS_RPM ~ Attack + Defense\nsalary.s ~ WINS_RPM\n X3P ~~ ORPM \n X2P~~FT \n ORB~~DRB \n X2P~~ORPM "
+nba_num$salary.s<-scales::rescale(nba_num$salary, to=c(0,10))
+lav <- sem(model, data=nba_num)
+summary(lav,standardized=TRUE,rsquare=TRUE)
+fitMeasures(lav)
+semPaths(lav,what="std",nCharNodes=8,sizeMan=8,
+         edge.label.cex=0.8, curvePivot = TRUE, fade=FALSE)
+
+```
+
+Direct Effects: Attack factor is related positively to wins (standardized coefficient = 0.79) and has higher effect on wins compared to defense factor (standardized coefficient =0.53). Wins is predicted of greater salary (standardized coefficient = 0.52). Indirect Effects: From the SEM, we can observe that attack factor and defense factor might have indirect effect on salary through number of wins contributed. 
+
+
+```{r}
+nba_num$star[nba_num$Rk <= 100] <- "Star"
+nba_num$star[nba_num$Rk > 100] <- "Non-Star"
+nba_num$name=nba_sub$PLAYER
+library(ggrepel)
+gg <- ggplot(nba_num, aes(x=Factor1, y=Factor2, label = name)) + 
+  geom_point(aes(col=star)) + 
+  #xlim(c(0, 0.1)) + 
+  #ylim(c(0, 5)) + 
+  geom_text_repel(data=subset(nba_num, Factor1 > 3 | Factor2 > 3),arrow = arrow(length = unit(0.001, "npc")),box.padding = 1)+
+  labs(subtitle="Attack Vs Defense", 
+       y="Defense", 
+       x="Attack", 
+       title="NBA Stars vs Non-Stars")
+
+plot(gg)
+
+```
+From the scatterplot, we colored the players based on its ranking in the dataset. Top 100 players were considered as NBA stars which was reasonable after comparing with the lists of NBA stars voted by fans. We can observe that most of the top rank players are high in attack ability. Russell Westbrook and James Harden are outstanding players with high attack abilities. Hassan Whiteside is the top defense player among all the players in the dataset, for he led the league in rebounds and blocks. However, the wins contributed by Russell Whiteside is only 6.28 while Russell Westbrook and James Harden are 17.34 and 15.54, respectively. We would like to quantify the relationship through structural equation modeling. 
+
+
+
