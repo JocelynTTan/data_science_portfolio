@@ -8,8 +8,8 @@ The analysis concluded that employees who had sought treatment in their past for
 location: DePaul, Chicago, IL
 Language: Python, R                                                                                                           Time Period: May 2019 – June 2019
 	
-	•	Identify the strongest predictors of mental health illness in the tech industry and the geographical variation 			using Logistic Regression, K-Nearest-Neighbors, Decision Tree and Naive Bayes. 
-	•	Pre-process survey data with over 25 text variables which have multiple levels with over 1000 records
+•	Identify the strongest predictors of mental health illness in the tech industry and the geographical variation using Logistic Regression, K-Nearest-Neighbors, Decision Tree and Naive Bayes. 
+•	Pre-process survey data with over 25 text variables which have multiple levels with over 1000 records
 
 
 2. Statistical Investigation of Twitter Firestorm Response Strategies  
@@ -19,7 +19,7 @@ Twitter has been a great platform for word-of-mouth propagation, which makes it 
 location: DePaul, Chicago, IL
 Language: Python, R                                                                                                           Time Period: Jan 2019 – June 2019
 
-	•	Retrieved and cleaned over 10k historical tweets for sentiment analysis using text mining packages
+•	Retrieved and cleaned over 10k historical tweets for sentiment analysis using text mining packages
 
-	•	Built Python functions using statistical tests to identify the sentiment difference before and after response
+•	Built Python functions using statistical tests to identify the sentiment difference before and after response
 
