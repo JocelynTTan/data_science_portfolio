@@ -19,6 +19,7 @@ Twitter has been a great platform for word-of-mouth propagation, which makes it 
 location: DePaul, Chicago, IL
 Language: Python, R                                                                                                           Time Period: Jan 2019 – June 2019
 
-•	Retrieved and cleaned over 10k historical tweets for sentiment analysis using text mining packages
-•	Built Python functions using statistical tests to identify the sentiment difference before and after response
+	•	Retrieved and cleaned over 10k historical tweets for sentiment analysis using text mining packages
+
+	•	Built Python functions using statistical tests to identify the sentiment difference before and after response
 
