@@ -44,3 +44,32 @@ Time Period: Feb 2019 – Mar 2019
 •	Revealed two-factor theoretical model based on over 10 performance features by confirmatory factor analysis
 
 •	Conducted Cluster Analysis and successfully segmented NBA players (98% NBA stars identified in one cluster)
+
+
+
+4. Convolutional Neural Networks for Facial Expression Recognition with Image Processing (Individual Project)
+
+Human interact with each other mainly through speech but also through facial expression to display emotions. Facial expressions are important part of communication. Automatic recognition of facial emotions can be an essential component of human-machine interfaces, behavioral science and clinical practices.
+This project aims to implement the complex Convolutional neural networks (CNN) proposed by previous studies to FER2013 dataset and also show the influences of image processing techniques on deep learning performance. Techniques including face detection, cropping, median filtering, Gaussian filtering, global contract normalization, histogram equalization, noise adding and combination between them are applied to the images in the data. The performance of different models using the same CNN architecture are compared. Visualization of the CNN model is also explored to have a deeper understanding of the black box.
+In this project, modern CNN is implemented and obtain good performance. Proposed processing methods by literature have been successfully implemented to make comparison between methods for facial emotion recognition. CNN is also visualized to show the pattern of filters and feature maps. Based on the experiment results obtained, histogram equalization achieve the best improvement for the CNN performance on test set. Models trained by processed images tend to perform better when predicting unseen images and certain emotions such as Angry, Disgust and Neutral which are difficult emotions for the original model. Thus, by applying image processing with cautious and clear purpose, it might enhance the facial emotion recognition by CNN.
+location: DePaul, Chicago, IL
+
+Language: Python (Tensorflow, Keras)
+
+Time Period: Oct 2019 – Dec 2019                                                                                                                                                                                              
+•	Utilizing image processing techniques including face detection, cropping, median filtering, Gaussian filtering, global
+	contract normalization, histogram equalization, noise adding and combination between them on the 35,888 images 
+
+•	Innovating CNN models based on the Mini Xception model proposed by Arriaga et, al [1] and providing improvement in
+	identifying Disgust by 10% increase in precision
+
+•	Exploring visualizations of pattern of filters and feature maps in the complex CNN architecture with sample images for 
+	better understanding of the model
+	
+
+Reference
+
+[1] O. Arriaga, M. Valdenegro-Toro, and P. G. Ploger, “Real-time Convolutional Neural Networks for emotion and gender classification,” European Symposium on Artificial Neural Networks, Computational Intelligence and Machine Learning, p. 6, 2019.
+
+
+
