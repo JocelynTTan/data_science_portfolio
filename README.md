@@ -67,6 +67,18 @@ Time Period: Oct 2019 – Dec 2019
 	better understanding of the model
 	
 
+5. Understanding Human Behavior and and Revealing Dating Insights Utilizing Advanced Data Visualization of Speed-Dating Data
+
+Language/Software: R and Tableau
+
+Time Period: Oct 2019 - Dec 2019
+
+•	Utilizing advanced data visualization techniques such as choropleth graphs, split violin plots, parallel coordinate
+	plots to understand racial pairing of successful matches, examine success rate by geographical locations, and compare 
+	self-rating with peer view
+•	Creating interactive plots to better demonstrate the explanatory analysis and send clear message to audience
+•	Demonstrating dashboards as the group representative and receiving high scores for informative presentation 
+	
 Reference
 
 [1] O. Arriaga, M. Valdenegro-Toro, and P. G. Ploger, “Real-time Convolutional Neural Networks for emotion and gender classification,” European Symposium on Artificial Neural Networks, Computational Intelligence and Machine Learning, p. 6, 2019.
