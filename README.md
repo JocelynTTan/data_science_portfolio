@@ -76,7 +76,9 @@ Time Period: Oct 2019 - Dec 2019
 •	Utilizing advanced data visualization techniques such as choropleth graphs, split violin plots, parallel coordinate
 	plots to understand racial pairing of successful matches, examine success rate by geographical locations, and compare 
 	self-rating with peer view
+	
 •	Creating interactive plots to better demonstrate the explanatory analysis and send clear message to audience
+
 •	Demonstrating dashboards as the group representative and receiving high scores for informative presentation 
 	
 Reference
