@@ -67,14 +67,14 @@ Time Period: Oct 2019 – Dec 2019
 	better understanding of the model
 	
 
-5. Understanding Human Behavior and and Revealing Dating Insights Utilizing Advanced Data Visualization of Speed-Dating Data
+5. Revealing Dating Insights Utilizing Advanced Data Visualization of Speed-Dating Data
 
 Language/Software: R and Tableau
 
 Time Period: Oct 2019 - Dec 2019
 
-•	Utilizing advanced data visualization techniques such as choropleth graphs, split violin plots, parallel coordinate
-	plots to understand racial pairing of successful matches, examine success rate by geographical locations, and compare 
+•	Utilizing techniques such as choropleth graphs, split violin plots, parallel coordinate plots to understand racial
+	pairing of successful matches, examine success rate by geographical locations, and compare 
 	self-rating with peer view
 	
 •	Creating interactive plots to better demonstrate the explanatory analysis and send clear message to audience
